@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#F5F3F0">
+    <title>Timestamp</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon_192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cloud-dancer: #F5F3F0;
+            --soft-gray: #E8E6E3;
+            --medium-gray: #B8B5B0;
+            --text-gray: #6B6966;
+            --dark-gray: #3D3B38;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--cloud-dancer);
+            color: var(--dark-gray);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1.5rem;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+            color: var(--dark-gray);
+        }
+
+        .upload-area {
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 1;
+            border: 2px dashed var(--medium-gray);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: var(--text-gray);
+            background: var(--soft-gray);
+        }
+
+        .upload-area.has-image {
+            border: none;
+            background: var(--soft-gray);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            stroke: var(--medium-gray);
+            stroke-width: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+        }
+
+        .upload-area.has-image .upload-icon,
+        .upload-area.has-image .upload-text {
+            display: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        .upload-area.has-image #preview {
+            display: block;
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 360px;
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .controls.visible {
+            display: block;
+        }
+
+        .timestamp-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 1.05rem;
+            text-align: center;
+            padding: 0.85rem 1rem;
+            background: var(--soft-gray);
+            border-radius: 8px;
+            color: var(--dark-gray);
+            margin-bottom: 1rem;
+        }
+
+        .manual-input {
+            display: none;
+            margin-bottom: 1rem;
+        }
+
+        .manual-input.visible {
+            display: block;
+        }
+
+        .no-exif-msg {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .manual-input input {
+            width: 100%;
+            padding: 0.75rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.9rem;
+            border: 1px solid var(--soft-gray);
+            border-radius: 6px;
+            background: white;
+            color: var(--dark-gray);
+            text-align: center;
+        }
+
+        .manual-input input:focus {
+            outline: none;
+            border-color: var(--text-gray);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--dark-gray);
+            color: var(--cloud-dancer);
+        }
+
+        .btn-primary:hover {
+            background: #2a2826;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-gray);
+            margin-top: 0.75rem;
+        }
+
+        .btn-secondary:hover {
+            background: var(--soft-gray);
+        }
+
+        canvas {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Timestamp</h1>
+
+    <div class="upload-area" id="uploadArea">
+        <svg class="upload-icon" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <span class="upload-text">사진을 선택하세요</span>
+        <input type="file" id="fileInput" accept="image/*">
+        <img id="preview" alt="Preview">
+    </div>
+
+    <div class="controls" id="controls">
+        <div class="timestamp-display" id="timestampDisplay">-</div>
+        
+        <div class="manual-input" id="manualInput">
+            <p class="no-exif-msg">EXIF 정보가 없습니다. 직접 입력해주세요.</p>
+            <input type="datetime-local" id="manualDateTime">
+        </div>
+
+        <button class="btn btn-primary" id="downloadBtn">저장하기</button>
+        <button class="btn btn-secondary" id="resetBtn">다른 사진</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const controls = document.getElementById('controls');
+        const timestampDisplay = document.getElementById('timestampDisplay');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const manualInput = document.getElementById('manualInput');
+        const manualDateTime = document.getElementById('manualDateTime');
+
+        let currentImage = null;
+        let currentTimestamp = null;
+
+        const CLOUD_DANCER = '#F5F3F0';
+        const TEXT_GRAY = '#6B6966';
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    uploadArea.classList.add('has-image');
+                    controls.classList.add('visible');
+                    extractExif(file);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function extractExif(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const dataView = new DataView(arrayBuffer);
+                
+                if (dataView.getUint16(0) !== 0xFFD8) {
+                    showManualInput();
+                    return;
+                }
+
+                let offset = 2;
+                while (offset < dataView.byteLength - 2) {
+                    const marker = dataView.getUint16(offset);
+                    
+                    if (marker === 0xFFE1) {
+                        const result = parseExif(dataView, offset + 4);
+                        if (result) {
+                            currentTimestamp = result;
+                            updateDisplay();
+                            generatePreview();
+                            return;
+                        }
+                    }
+                    
+                    if ((marker & 0xFF00) !== 0xFF00) break;
+                    if (marker === 0xFFD9 || marker === 0xFFDA) break;
+                    
+                    const length = dataView.getUint16(offset + 2);
+                    offset += 2 + length;
+                }
+                
+                showManualInput();
+            } catch (err) {
+                showManualInput();
+            }
+        }
+
+        function parseExif(dataView, start) {
+            try {
+                const check = String.fromCharCode(
+                    dataView.getUint8(start),
+                    dataView.getUint8(start + 1),
+                    dataView.getUint8(start + 2),
+                    dataView.getUint8(start + 3)
+                );
+                
+                if (check !== 'Exif') return null;
+
+                const tiffStart = start + 6;
+                const littleEndian = dataView.getUint16(tiffStart) === 0x4949;
+                
+                const ifdOffset = dataView.getUint32(tiffStart + 4, littleEndian);
+                const ifd0Entries = dataView.getUint16(tiffStart + ifdOffset, littleEndian);
+                
+                let exifIfdPointer = null;
+                
+                for (let i = 0; i < ifd0Entries; i++) {
+                    const entryOffset = tiffStart + ifdOffset + 2 + (i * 12);
+                    const tag = dataView.getUint16(entryOffset, littleEndian);
+                    
+                    if (tag === 0x8769) {
+                        exifIfdPointer = dataView.getUint32(entryOffset + 8, littleEndian);
+                        break;
+                    }
+                }
+                
+                if (exifIfdPointer) {
+                    const exifEntries = dataView.getUint16(tiffStart + exifIfdPointer, littleEndian);
+                    
+                    for (let i = 0; i < exifEntries; i++) {
+                        const entryOffset = tiffStart + exifIfdPointer + 2 + (i * 12);
+                        const tag = dataView.getUint16(entryOffset, littleEndian);
+                        
+                        if (tag === 0x9003) {
+                            const valueOffset = dataView.getUint32(entryOffset + 8, littleEndian);
+                            let dateStr = '';
+                            for (let j = 0; j < 19; j++) {
+                                dateStr += String.fromCharCode(dataView.getUint8(tiffStart + valueOffset + j));
+                            }
+                            const [datePart, timePart] = dateStr.split(' ');
+                            const [year, month, day] = datePart.split(':');
+                            const [hour, minute] = timePart.split(':');
+                            
+                            return { year, month, day, hour, minute };
+                        }
+                    }
+                }
+                
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function showManualInput() {
+            manualInput.classList.add('visible');
+            const now = new Date();
+            const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, 16);
+            manualDateTime.value = localISO;
+            updateFromManual();
+        }
+
+        manualDateTime.addEventListener('change', () => {
+            updateFromManual();
+            generatePreview();
+        });
+
+        function updateFromManual() {
+            const val = manualDateTime.value;
+            if (val) {
+                const date = new Date(val);
+                currentTimestamp = {
+                    year: date.getFullYear().toString(),
+                    month: String(date.getMonth() + 1).padStart(2, '0'),
+                    day: String(date.getDate()).padStart(2, '0'),
+                    hour: String(date.getHours()).padStart(2, '0'),
+                    minute: String(date.getMinutes()).padStart(2, '0')
+                };
+                updateDisplay();
+                generatePreview();
+            }
+        }
+
+        function updateDisplay() {
+            if (currentTimestamp) {
+                const { year, month, day, hour, minute } = currentTimestamp;
+                timestampDisplay.textContent = `${year}.${month}.${day} ${hour}:${minute}`;
+            }
+        }
+
+        function getTimestampText() {
+            if (!currentTimestamp) return '';
+            const { year, month, day, hour, minute } = currentTimestamp;
+            return `${year}.${month}.${day} ${hour}:${minute}`;
+        }
+
+        function generatePreview() {
+            if (!currentImage || !currentTimestamp) return;
+            
+            const outputSize = 1080;
+            const padding = outputSize * 0.02;
+            const bottomPadding = outputSize * 0.10;
+            
+            canvas.width = outputSize;
+            canvas.height = outputSize;
+            
+            // Fill background with Cloud Dancer
+            ctx.fillStyle = CLOUD_DANCER;
+            ctx.fillRect(0, 0, outputSize, outputSize);
+            
+            // Calculate image area
+            const imageAreaWidth = outputSize - (padding * 2);
+            const imageAreaHeight = outputSize - padding - bottomPadding;
+            
+            // Scale image to cover (center crop)
+            const imgRatio = currentImage.naturalWidth / currentImage.naturalHeight;
+            const areaRatio = imageAreaWidth / imageAreaHeight;
+            
+            let sourceX, sourceY, sourceW, sourceH;
+            
+            if (imgRatio > areaRatio) {
+                // 이미지가 더 넓음 → 좌우 크롭
+                sourceH = currentImage.naturalHeight;
+                sourceW = sourceH * areaRatio;
+                sourceX = (currentImage.naturalWidth - sourceW) / 2;
+                sourceY = 0;
+            } else {
+                // 이미지가 더 높음 → 상하 크롭
+                sourceW = currentImage.naturalWidth;
+                sourceH = sourceW / areaRatio;
+                sourceX = 0;
+                sourceY = (currentImage.naturalHeight - sourceH) / 2;
+            }
+            
+            ctx.drawImage(currentImage, sourceX, sourceY, sourceW, sourceH, padding, padding, imageAreaWidth, imageAreaHeight);
+            
+            // Draw timestamp
+            const fontSize = outputSize * 0.032;
+            ctx.font = `400 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, monospace`;
+            ctx.fillStyle = TEXT_GRAY;
+            ctx.textAlign = 'right';
+            ctx.fillText(
+                getTimestampText(),
+                outputSize - padding * 1.5,
+                outputSize - (bottomPadding * 0.35)
+            );
+            
+            preview.src = canvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (!currentImage || !currentTimestamp) return;
+            
+            generatePreview();
+            
+            const link = document.createElement('a');
+            const ts = getTimestampText().replace(/[:.]/g, '').replace(' ', '_');
+            link.download = `book_${ts}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.92);
+            link.click();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            uploadArea.classList.remove('has-image');
+            controls.classList.remove('visible');
+            manualInput.classList.remove('visible');
+            preview.src = '';
+            fileInput.value = '';
+            currentImage = null;
+            currentTimestamp = null;
+            timestampDisplay.textContent = '-';
+        });
+    </script>
+</body>
+</html>

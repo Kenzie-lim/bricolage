@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>DD TODO</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23F5F3F0' width='100' height='100'/><text x='50' y='60' text-anchor='middle' font-size='40'>✓</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F5F3F0;
+      color: #2C2C2C;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 400px; margin: 0 auto; }
+    h1 { font-size: 14px; font-weight: 400; color: #888; margin-bottom: 24px; text-align: center; }
+    
+    /* Input Screen */
+    input[type="text"] {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
+      border: 1px solid #DDD;
+      border-radius: 8px;
+      background: #FFF;
+      margin-bottom: 16px;
+    }
+    input[type="text"]:focus { outline: none; border-color: #999; }
+    
+    .tag-group { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tag {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #DDD;
+      border-radius: 8px;
+      background: #FFF;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .tag.selected { background: #2C2C2C; color: #F5F3F0; border-color: #2C2C2C; }
+    
+    .date-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    select {
+      flex: 1;
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #DDD;
+      border-radius: 8px;
+      background: #FFF;
+      cursor: pointer;
+    }
+    
+    .btn-group { display: flex; gap: 8px; }
+    button {
+      flex: 1;
+      padding: 14px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:active { opacity: 0.7; }
+    .btn-save { background: #2C2C2C; color: #F5F3F0; }
+    .btn-view { background: #FFF; color: #2C2C2C; border: 1px solid #DDD; }
+    
+    /* List Screen */
+    .screen { display: none; }
+    .screen.active { display: block; }
+    
+    .task-list { margin-bottom: 16px; }
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 14px;
+      background: #FFF;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      border: 1px solid #DDD;
+    }
+    .task-item.selected { border-color: #2C2C2C; background: #EEECEA; }
+    .task-tag {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #2C2C2C;
+      color: #F5F3F0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+    .task-content { flex: 1; min-width: 0; }
+    .task-text { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-deadline { font-size: 12px; color: #888; margin-top: 2px; }
+    
+    .empty { text-align: center; color: #888; padding: 40px; }
+    
+    .btn-back { background: #FFF; color: #2C2C2C; border: 1px solid #DDD; }
+    .btn-done { background: #2C2C2C; color: #F5F3F0; }
+    .btn-done:disabled { background: #CCC; cursor: not-allowed; }
+    
+    .loading { text-align: center; color: #888; padding: 40px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Input Screen -->
+    <div id="inputScreen" class="screen active">
+      <h1>DD TODO</h1>
+      <input type="text" id="taskInput" placeholder="할 일">
+      
+      <div class="tag-group">
+        <div class="tag" data-tag="1">1</div>
+        <div class="tag" data-tag="2">2</div>
+        <div class="tag" data-tag="3">3</div>
+        <div class="tag" data-tag="4">4</div>
+      </div>
+      
+      <div class="date-row">
+        <select id="monthSelect">
+          <option value="">월</option>
+          <option value="1">1월</option>
+          <option value="2">2월</option>
+          <option value="3">3월</option>
+          <option value="4">4월</option>
+          <option value="5">5월</option>
+          <option value="6">6월</option>
+          <option value="7">7월</option>
+          <option value="8">8월</option>
+          <option value="9">9월</option>
+          <option value="10">10월</option>
+          <option value="11">11월</option>
+          <option value="12">12월</option>
+        </select>
+        <select id="daySelect">
+          <option value="">일</option>
+        </select>
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn-save" onclick="saveTask()">저장</button>
+        <button class="btn-view" onclick="showList()">할 일 확인</button>
+      </div>
+    </div>
+    
+    <!-- List Screen -->
+    <div id="listScreen" class="screen">
+      <h1>DD TODO</h1>
+      <div id="taskList" class="task-list"></div>
+      <div class="btn-group">
+        <button class="btn-back" onclick="showInput()">돌아가기</button>
+        <button class="btn-done" id="doneBtn" onclick="markDone()" disabled>완료</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // API endpoint is loaded from config.js (not committed to git).
+    // Copy config.example.js → config.js and paste your Google Apps Script URL.
+    const API = window.CONFIG?.API_URL || '';
+    let selectedTag = null;
+    let selectedTaskIndex = null;
+    
+    // Day select population
+    const daySelect = document.getElementById('daySelect');
+    for (let i = 1; i <= 31; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i + '일';
+      daySelect.appendChild(opt);
+    }
+    
+    // Tag selection
+    document.querySelectorAll('.tag').forEach(tag => {
+      tag.addEventListener('click', () => {
+        document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+        tag.classList.add('selected');
+        selectedTag = tag.dataset.tag;
+      });
+    });
+    
+    // Save task
+    async function saveTask() {
+      const task = document.getElementById('taskInput').value.trim();
+      if (!task) { alert('할 일을 입력하세요'); return; }
+      if (!selectedTag) { alert('태그를 선택하세요'); return; }
+      
+      const month = document.getElementById('monthSelect').value;
+      const day = document.getElementById('daySelect').value;
+      const deadline = month && day ? `${month}/${day}` : '';
+      
+      try {
+        await fetch(API, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', task, eisenhower: selectedTag, deadline })
+        });
+        
+        // Reset
+        document.getElementById('taskInput').value = '';
+        document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+        selectedTag = null;
+        document.getElementById('monthSelect').value = '';
+        document.getElementById('daySelect').value = '';
+        alert('저장됨');
+      } catch (e) {
+        alert('오류 발생');
+      }
+    }
+    
+    // Show list screen
+    async function showList() {
+      document.getElementById('inputScreen').classList.remove('active');
+      document.getElementById('listScreen').classList.add('active');
+      document.getElementById('taskList').innerHTML = '<div class="loading">불러오는 중...</div>';
+      
+      try {
+        const res = await fetch(API);
+        const tasks = await res.json();
+        
+        // Sort by eisenhower
+        tasks.sort((a, b) => a.eisenhower - b.eisenhower);
+        
+        const listEl = document.getElementById('taskList');
+        if (tasks.length === 0) {
+          listEl.innerHTML = '<div class="empty">할 일이 없습니다</div>';
+          return;
+        }
+        
+        listEl.innerHTML = tasks.map(t => `
+          <div class="task-item" data-index="${t.index}" onclick="selectTask(this, ${t.index})">
+            <div class="task-tag">${t.eisenhower}</div>
+            <div class="task-content">
+              <div class="task-text">${t.task.substring(0, 10)}${t.task.length > 10 ? '...' : ''}</div>
+              ${t.deadline ? `<div class="task-deadline">${t.deadline}</div>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('taskList').innerHTML = '<div class="empty">불러오기 실패</div>';
+      }
+    }
+    
+    // Select task
+    function selectTask(el, index) {
+      document.querySelectorAll('.task-item').forEach(item => item.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedTaskIndex = index;
+      document.getElementById('doneBtn').disabled = false;
+    }
+    
+    // Mark done
+    async function markDone() {
+      if (!selectedTaskIndex) return;
+      
+      try {
+        await fetch(API, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'done', index: selectedTaskIndex })
+        });
+        selectedTaskIndex = null;
+        document.getElementById('doneBtn').disabled = true;
+        showList(); // Refresh
+      } catch (e) {
+        alert('오류 발생');
+      }
+    }
+    
+    // Show input screen
+    function showInput() {
+      document.getElementById('listScreen').classList.remove('active');
+      document.getElementById('inputScreen').classList.add('active');
+      selectedTaskIndex = null;
+    }
+  </script>
+</body>
+</html>

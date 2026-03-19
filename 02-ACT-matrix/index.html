@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ACT Matrix</title>
+    
+    <!-- PWA 설정 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3D3B38">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ACT Matrix">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cloud-dancer: #F5F3F0;
+            --soft-gray: #E8E6E3;
+            --medium-gray: #B8B5B0;
+            --text-gray: #6B6966;
+            --dark-gray: #3D3B38;
+            --accent-warm: #D4CFC7;
+            --toward-green: #4A7A5A;
+            --toward-green-light: #5A8A6A;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(145deg, var(--cloud-dancer) 0%, #FAFAF8 50%, var(--soft-gray) 100%);
+            min-height: 100vh;
+            padding: 24px;
+            color: var(--dark-gray);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 2.2rem;
+            letter-spacing: 0.08em;
+            color: var(--dark-gray);
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--medium-gray);
+        }
+
+        .matrix-input {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .quadrant {
+            position: relative;
+        }
+
+        .quadrant label {
+            display: block;
+            font-size: 0.65rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-gray);
+            margin-bottom: 6px;
+            padding-left: 2px;
+        }
+
+        .quadrant.toward-actions label,
+        .quadrant.values label {
+            color: var(--toward-green);
+            font-weight: 600;
+        }
+
+        .quadrant textarea {
+            width: 100%;
+            height: 100px;
+            padding: 14px;
+            border: 1px solid var(--soft-gray);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--dark-gray);
+            resize: none;
+            transition: all 0.2s ease;
+        }
+
+        .quadrant textarea:focus {
+            outline: none;
+            border-color: var(--medium-gray);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .quadrant textarea::placeholder {
+            color: var(--medium-gray);
+            font-size: 0.8rem;
+        }
+
+        /* 분면별 미묘한 구분 */
+        .quadrant.away-actions textarea { border-left: 2px solid #C5C0B8; }
+        .quadrant.toward-actions textarea { border-left: 3px solid var(--toward-green); }
+        .quadrant.inner-exp textarea { border-left: 2px solid #C5C0B8; }
+        .quadrant.values textarea { border-left: 3px solid var(--toward-green); }
+
+        .axis-labels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 8px;
+            margin-bottom: 20px;
+        }
+
+        .axis-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--medium-gray);
+        }
+
+        .axis-label.toward {
+            color: var(--toward-green);
+            font-weight: 600;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: var(--dark-gray);
+            color: var(--cloud-dancer);
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .generate-btn:hover {
+            background: #2A2826;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 프리뷰 영역 */
+        .preview-section {
+            margin-top: 32px;
+            display: none;
+        }
+
+        .preview-section.show {
+            display: block;
+        }
+
+        .preview-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-gray);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .canvas-wrapper {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        #matrixCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 14px 24px;
+            margin-top: 16px;
+            background: transparent;
+            color: var(--dark-gray);
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover {
+            background: var(--soft-gray);
+            border-color: var(--text-gray);
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 480px) {
+            body {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .matrix-input {
+                gap: 10px;
+            }
+
+            .quadrant textarea {
+                height: 90px;
+                padding: 12px;
+                font-size: 0.85rem;
+            }
+
+            .quadrant label {
+                font-size: 0.6rem;
+            }
+        }
+
+        /* 숨겨진 캔버스 (고해상도 출력용) */
+        #hiddenCanvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ACT Matrix</h1>
+            <p class="subtitle">Acceptance & Commitment</p>
+        </header>
+
+        <div class="axis-labels">
+            <span class="axis-label">← Away from values</span>
+            <span class="axis-label toward">Toward values →</span>
+        </div>
+
+        <div class="matrix-input">
+            <div class="quadrant away-actions">
+                <label>Away Actions</label>
+                <textarea id="awayActions" placeholder="회피 행동..."></textarea>
+            </div>
+            <div class="quadrant toward-actions">
+                <label>Toward Actions</label>
+                <textarea id="towardActions" placeholder="가치 기반 행동..."></textarea>
+            </div>
+            <div class="quadrant inner-exp">
+                <label>Unwanted Inner Experiences</label>
+                <textarea id="innerExp" placeholder="불편한 내면 경험..."></textarea>
+            </div>
+            <div class="quadrant values">
+                <label>Values & Important People</label>
+                <textarea id="values" placeholder="중요한 가치/사람..."></textarea>
+            </div>
+        </div>
+
+        <button class="generate-btn" onclick="generateMatrix()">Generate Image</button>
+
+        <div class="preview-section" id="previewSection">
+            <p class="preview-label">Preview</p>
+            <div class="canvas-wrapper">
+                <canvas id="matrixCanvas"></canvas>
+            </div>
+            <button class="download-btn" onclick="downloadImage()">Download PNG</button>
+        </div>
+    </div>
+
+    <canvas id="hiddenCanvas"></canvas>
+
+    <script>
+        function generateMatrix() {
+            const awayActions = document.getElementById('awayActions').value || '';
+            const towardActions = document.getElementById('towardActions').value || '';
+            const innerExp = document.getElementById('innerExp').value || '';
+            const values = document.getElementById('values').value || '';
+
+            // 고해상도 캔버스 설정
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const width = 1200;
+            const height = 1200;
+            canvas.width = width;
+            canvas.height = height;
+
+            // 배경 그라데이션
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, '#F5F3F0');
+            gradient.addColorStop(0.5, '#FAFAF8');
+            gradient.addColorStop(1, '#EBE9E6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // 미세한 노이즈 텍스처 효과
+            ctx.globalAlpha = 0.03;
+            for (let i = 0; i < 5000; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
+                ctx.fillRect(
+                    Math.random() * width,
+                    Math.random() * height,
+                    1,
+                    1
+                );
+            }
+            ctx.globalAlpha = 1;
+
+            // 타이틀
+            ctx.fillStyle = '#3D3B38';
+            ctx.font = '300 48px Cormorant Garamond, Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('ACT Matrix', width / 2, 70);
+
+            ctx.fillStyle = '#B8B5B0';
+            ctx.font = '400 13px DM Sans, sans-serif';
+            ctx.fillText('ACCEPTANCE & COMMITMENT', width / 2, 100);
+
+            // 매트릭스 영역 - 여백 제거
+            const matrixTop = 130;
+            const matrixLeft = 0;
+            const matrixWidth = width;
+            const matrixHeight = 980;
+            const halfW = matrixWidth / 2;
+            const halfH = matrixHeight / 2;
+
+            // 매트릭스 배경
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fillRect(matrixLeft, matrixTop, matrixWidth, matrixHeight);
+
+            // 분면 구분선
+            ctx.strokeStyle = '#D4CFC7';
+            ctx.lineWidth = 1;
+            
+            // 가로선
+            ctx.beginPath();
+            ctx.moveTo(0, matrixTop + halfH);
+            ctx.lineTo(width, matrixTop + halfH);
+            ctx.stroke();
+
+            // 세로선
+            ctx.beginPath();
+            ctx.moveTo(halfW, matrixTop);
+            ctx.lineTo(halfW, matrixTop + matrixHeight);
+            ctx.stroke();
+
+            // 분면 레이블 - 작게, 상단에
+            ctx.font = '500 11px DM Sans, sans-serif';
+            
+            // Away Actions (왼쪽 위)
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#9A9790';
+            ctx.fillText('AWAY ACTIONS', 20, matrixTop + 24);
+            
+            // Toward Actions (오른쪽 위) - 강조
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#3A6A4A';
+            ctx.font = '700 11px DM Sans, sans-serif';
+            ctx.fillText('TOWARD ACTIONS', width - 20, matrixTop + 24);
+            
+            // Inner Experiences (왼쪽 아래)
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#9A9790';
+            ctx.font = '500 11px DM Sans, sans-serif';
+            ctx.fillText('UNWANTED INNER EXPERIENCES', 20, matrixTop + halfH + 24);
+            
+            // Values (오른쪽 아래) - 강조
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#3A6A4A';
+            ctx.font = '700 11px DM Sans, sans-serif';
+            ctx.fillText('VALUES & IMPORTANT PEOPLE', width - 20, matrixTop + halfH + 24);
+
+            // 각 사분면 중앙 좌표 계산
+            const quadrants = [
+                { // Away Actions (왼쪽 위)
+                    text: awayActions,
+                    centerX: halfW / 2,
+                    centerY: matrixTop + halfH / 2,
+                    isToward: false
+                },
+                { // Toward Actions (오른쪽 위)
+                    text: towardActions,
+                    centerX: halfW + halfW / 2,
+                    centerY: matrixTop + halfH / 2,
+                    isToward: true
+                },
+                { // Inner Experiences (왼쪽 아래)
+                    text: innerExp,
+                    centerX: halfW / 2,
+                    centerY: matrixTop + halfH + halfH / 2,
+                    isToward: false
+                },
+                { // Values (오른쪽 아래)
+                    text: values,
+                    centerX: halfW + halfW / 2,
+                    centerY: matrixTop + halfH + halfH / 2,
+                    isToward: true
+                }
+            ];
+
+            // 각 사분면 텍스트 그리기
+            quadrants.forEach(q => {
+                if (!q.text) return;
+                
+                // 사분면 내 최대 너비 (여유 패딩 포함)
+                const maxWidth = halfW - 60;
+                
+                // 오른쪽 (Toward) 강조
+                if (q.isToward) {
+                    ctx.fillStyle = '#2A5A3A';
+                } else {
+                    ctx.fillStyle = '#5A5752';
+                }
+                
+                // 텍스트 줄바꿈 처리
+                const inputLines = q.text.split('\n').filter(l => l.trim());
+                let wrappedLines = [];
+                
+                // 초기 폰트 크기로 줄바꿈 계산
+                let fontSize = 36;
+                ctx.font = q.isToward ? `700 ${fontSize}px DM Sans, sans-serif` : `400 ${fontSize}px DM Sans, sans-serif`;
+                
+                inputLines.forEach(line => {
+                    const words = line.trim().split('');
+                    let currentLine = '';
+                    
+                    for (let i = 0; i < words.length; i++) {
+                        const testLine = currentLine + words[i];
+                        const metrics = ctx.measureText(testLine);
+                        
+                        if (metrics.width > maxWidth && currentLine.length > 0) {
+                            wrappedLines.push(currentLine);
+                            currentLine = words[i];
+                        } else {
+                            currentLine = testLine;
+                        }
+                    }
+                    if (currentLine) {
+                        wrappedLines.push(currentLine);
+                    }
+                });
+                
+                // 줄 수에 따라 폰트 크기 조정
+                if (wrappedLines.length > 4) {
+                    fontSize = 28;
+                } else if (wrappedLines.length > 2) {
+                    fontSize = 32;
+                }
+                
+                // 가장 긴 줄 기준으로 폰트 크기 재조정
+                ctx.font = q.isToward ? `700 ${fontSize}px DM Sans, sans-serif` : `400 ${fontSize}px DM Sans, sans-serif`;
+                const maxLineWidth = Math.max(...wrappedLines.map(l => ctx.measureText(l).width));
+                
+                if (maxLineWidth > maxWidth) {
+                    fontSize = Math.floor(fontSize * (maxWidth / maxLineWidth) * 0.95);
+                    ctx.font = q.isToward ? `700 ${fontSize}px DM Sans, sans-serif` : `400 ${fontSize}px DM Sans, sans-serif`;
+                }
+                
+                const lineHeight = fontSize * 1.5;
+                const totalHeight = wrappedLines.length * lineHeight;
+                const startY = q.centerY - totalHeight / 2 + fontSize / 2;
+                
+                ctx.textAlign = 'center';
+                
+                wrappedLines.forEach((line, i) => {
+                    ctx.fillText(line, q.centerX, startY + i * lineHeight);
+                });
+            });
+
+            // 축 레이블
+            ctx.font = '400 12px DM Sans, sans-serif';
+            ctx.fillStyle = '#B8B5B0';
+            
+            ctx.textAlign = 'left';
+            ctx.fillText('← Away from values', 20, matrixTop + matrixHeight + 30);
+            
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#3A6A4A';
+            ctx.font = '600 12px DM Sans, sans-serif';
+            ctx.fillText('Toward values →', width - 20, matrixTop + matrixHeight + 30);
+
+            // 날짜/시간
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const timeStr = now.toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#B8B5B0';
+            ctx.font = '400 13px DM Sans, sans-serif';
+            ctx.fillText(`${dateStr} ${timeStr}`, width / 2, height - 30);
+
+            // 프리뷰 캔버스에 복사
+            const previewCanvas = document.getElementById('matrixCanvas');
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCanvas.width = width;
+            previewCanvas.height = height;
+            previewCtx.drawImage(canvas, 0, 0);
+
+            // 프리뷰 섹션 표시
+            document.getElementById('previewSection').classList.add('show');
+            
+            // 스크롤
+            document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function downloadImage() {
+            const canvas = document.getElementById('hiddenCanvas');
+            const link = document.createElement('a');
+            
+            const now = new Date();
+            const filename = `ACT-Matrix_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.png`;
+            
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+    
+    <!-- Service Worker 등록 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>

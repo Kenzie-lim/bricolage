@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FF6B35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="오롯입고">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍎</text></svg>">
+  <title>오롯 입고</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script>
+    const { useState, useEffect } = React;
+
+    const STORAGE_KEYS = {
+      API_KEY: 'fruits_checker_api_key',
+      CHECKLIST: 'fruits_checker_list',
+    };
+
+    const storage = {
+      get: async (key) => {
+        if (window.storage) {
+          const result = await window.storage.get(key);
+          return result?.value || null;
+        }
+        return localStorage.getItem(key);
+      },
+      set: async (key, value) => {
+        if (window.storage) {
+          await window.storage.set(key, value);
+        } else {
+          localStorage.setItem(key, value);
+        }
+      },
+      delete: async (key) => {
+        if (window.storage) {
+          await window.storage.delete(key);
+        } else {
+          localStorage.removeItem(key);
+        }
+      },
+    };
+
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #FFF8F0 0%, #FFF0E6 100%)',
+        padding: '16px',
+      },
+      header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px',
+        paddingBottom: '12px',
+        borderBottom: '3px solid #2D2D2D',
+      },
+      title: {
+        fontSize: '26px',
+        fontWeight: '800',
+        color: '#2D2D2D',
+        margin: 0,
+      },
+      settingsBtn: {
+        width: '48px',
+        height: '48px',
+        fontSize: '24px',
+        background: 'white',
+        border: '2px solid #2D2D2D',
+        borderRadius: '12px',
+        cursor: 'pointer',
+      },
+      statusBar: {
+        marginBottom: '16px',
+        textAlign: 'center',
+      },
+      statusOk: {
+        fontSize: '14px',
+        color: '#4CAF50',
+        fontWeight: '600',
+      },
+      statusNo: {
+        fontSize: '14px',
+        color: '#FF6B35',
+        fontWeight: '600',
+      },
+      uploadArea: {
+        marginBottom: '20px',
+      },
+      uploadLabel: {
+        display: 'block',
+        padding: '24px',
+        background: '#FF6B35',
+        borderRadius: '16px',
+        textAlign: 'center',
+        cursor: 'pointer',
+        boxShadow: '0 4px 0 #CC4A1A',
+      },
+      uploadText: {
+        fontSize: '20px',
+        fontWeight: '700',
+        color: 'white',
+      },
+      error: {
+        background: '#FFE0E0',
+        color: '#CC0000',
+        padding: '12px 16px',
+        borderRadius: '8px',
+        marginBottom: '16px',
+        fontSize: '14px',
+      },
+      progress: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '16px',
+        padding: '12px 16px',
+        background: 'white',
+        borderRadius: '12px',
+        border: '2px solid #2D2D2D',
+      },
+      progressText: {
+        fontSize: '18px',
+        fontWeight: '700',
+        color: '#2D2D2D',
+      },
+      clearBtn: {
+        padding: '8px 16px',
+        fontSize: '14px',
+        fontWeight: '600',
+        background: '#E0E0E0',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+      },
+      list: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+      },
+      fruitBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '16px 20px',
+        background: 'white',
+        border: '3px solid #2D2D2D',
+        borderRadius: '16px',
+        cursor: 'pointer',
+        boxShadow: '0 4px 0 #2D2D2D',
+        position: 'relative',
+        gap: '12px',
+      },
+      fruitBtnDone: {
+        background: '#E8E8E8',
+        borderColor: '#AAAAAA',
+        boxShadow: '0 2px 0 #888888',
+        opacity: 0.6,
+      },
+      fruitInfo: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '4px',
+        flex: 1,
+      },
+      fruitShort: {
+        fontSize: '22px',
+        fontWeight: '800',
+        color: '#2D2D2D',
+      },
+      fruitName: {
+        fontSize: '12px',
+        fontWeight: '400',
+        color: '#888',
+        textAlign: 'left',
+        lineHeight: '1.3',
+      },
+      separator: {
+        height: '2px',
+        background: '#CCCCCC',
+        margin: '8px 0',
+        borderRadius: '1px',
+      },
+      fruitQty: {
+        fontSize: '20px',
+        fontWeight: '700',
+        color: '#FF6B35',
+        background: '#FFF0E6',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        flexShrink: 0,
+      },
+      qtyDone: {
+        textDecoration: 'line-through',
+        color: '#888888',
+        background: '#E0E0E0',
+      },
+      textDone: {
+        textDecoration: 'line-through',
+        color: '#888888',
+      },
+      checkmark: {
+        position: 'absolute',
+        right: '-8px',
+        top: '-8px',
+        width: '32px',
+        height: '32px',
+        background: '#4CAF50',
+        color: 'white',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '18px',
+        fontWeight: 'bold',
+      },
+      empty: {
+        textAlign: 'center',
+        color: '#888',
+        fontSize: '16px',
+        marginTop: '60px',
+        lineHeight: '1.8',
+      },
+      loadingText: {
+        textAlign: 'center',
+        color: '#888',
+        fontSize: '18px',
+        marginTop: '100px',
+      },
+      modal: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px',
+      },
+      modalContent: {
+        background: 'white',
+        padding: '24px',
+        borderRadius: '16px',
+        width: '100%',
+        maxWidth: '400px',
+      },
+      modalTitle: {
+        fontSize: '20px',
+        fontWeight: '700',
+        marginBottom: '16px',
+        color: '#2D2D2D',
+      },
+      input: {
+        width: '100%',
+        padding: '16px',
+        fontSize: '16px',
+        border: '2px solid #DDD',
+        borderRadius: '8px',
+        marginBottom: '16px',
+        boxSizing: 'border-box',
+      },
+      modalButtons: {
+        display: 'flex',
+        gap: '12px',
+      },
+      cancelBtn: {
+        flex: 1,
+        padding: '14px',
+        fontSize: '16px',
+        fontWeight: '600',
+        background: '#E0E0E0',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+      },
+      saveBtn: {
+        flex: 1,
+        padding: '14px',
+        fontSize: '16px',
+        fontWeight: '600',
+        background: '#FF6B35',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+      },
+    };
+
+    function FruitsChecker() {
+      const [apiKey, setApiKey] = useState('');
+      const [tempApiKey, setTempApiKey] = useState('');
+      const [showSettings, setShowSettings] = useState(false);
+      const [fruits, setFruits] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [storageReady, setStorageReady] = useState(false);
+
+      useEffect(() => {
+        const loadStorage = async () => {
+          try {
+            const savedKey = await storage.get(STORAGE_KEYS.API_KEY);
+            if (savedKey) {
+              setApiKey(savedKey);
+              setTempApiKey(savedKey);
+            }
+            const savedList = await storage.get(STORAGE_KEYS.CHECKLIST);
+            if (savedList) {
+              setFruits(JSON.parse(savedList));
+            }
+          } catch (e) {
+            console.log('Storage not available or empty');
+          }
+          setStorageReady(true);
+        };
+        loadStorage();
+      }, []);
+
+      useEffect(() => {
+        if (!storageReady) return;
+        const saveList = async () => {
+          try {
+            if (fruits.length > 0) {
+              await storage.set(STORAGE_KEYS.CHECKLIST, JSON.stringify(fruits));
+            }
+          } catch (e) {
+            console.log('Failed to save list');
+          }
+        };
+        saveList();
+      }, [fruits, storageReady]);
+
+      const saveApiKey = async () => {
+        try {
+          await storage.set(STORAGE_KEYS.API_KEY, tempApiKey);
+          setApiKey(tempApiKey);
+          setShowSettings(false);
+          setError('');
+        } catch (e) {
+          setError('API 키 저장 실패');
+        }
+      };
+
+      const handleImageUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        if (!apiKey) {
+          setShowSettings(true);
+          setError('API 키를 먼저 설정해주세요');
+          return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+          let allFruits = [];
+          
+          for (const file of files) {
+            const base64 = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result.split(',')[1]);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+
+            const mediaType = file.type || 'image/jpeg';
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true',
+              },
+              body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1024,
+                messages: [{
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'image',
+                      source: {
+                        type: 'base64',
+                        media_type: mediaType,
+                        data: base64,
+                      },
+                    },
+                    {
+                      type: 'text',
+                      text: '이 이미지는 상품 입고 리스트입니다. 테이블에 있는 상품명과 수량을 추출해주세요.\n\n중요:\n- 상품명은 이미지에 적힌 그대로 전체를 보존 (사이즈, 규격, 품종, 원산지 등 모두 포함)\n- short는 핵심 키워드만 (예: "파인 미니", "블루베리", "한라봉")\n- 테이블 위에서 아래 순서 그대로 유지\n- 과일 외 식품(오징어 등)도 포함\n\nJSON 형식으로만 응답:\n[{"name": "전체상품명", "short": "핵심키워드", "qty": "수량"}, ...]\n\n예시: [{"name": "오롯이 썰어드림 파인 미니(220g 1팩) - 수입산", "short": "파인 미니", "qty": "6"}]',
+                    },
+                  ],
+                }],
+              }),
+            });
+
+            if (!response.ok) {
+              const errData = await response.json();
+              throw new Error(errData.error?.message || 'API 호출 실패');
+            }
+
+            const data = await response.json();
+            const text = data.content[0]?.text || '';
+            
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) {
+              throw new Error('과일 리스트를 파싱할 수 없습니다');
+            }
+
+            const parsed = JSON.parse(jsonMatch[0]);
+            allFruits = [...allFruits, ...parsed.map(item => ({ ...item, imageIdx: files.indexOf(file) }))];
+          }
+          
+          const fruitList = allFruits.map((item, idx) => ({
+            id: idx,
+            name: item.name || '',
+            short: item.short || item.name || '',
+            qty: parseInt(item.qty) || 0,
+            count: 0,
+            imageIdx: item.imageIdx,
+          }));
+
+          setFruits(fruitList);
+          
+          try {
+            await storage.set(STORAGE_KEYS.CHECKLIST, JSON.stringify(fruitList));
+          } catch (e) {
+            console.log('Failed to save to storage');
+          }
+        } catch (err) {
+          setError(err.message || '오류가 발생했습니다');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleTap = (id) => {
+        setFruits(prev => prev.map(f => 
+          f.id === id ? { ...f, count: Math.min(f.count + 1, f.qty) } : f
+        ));
+      };
+
+      const handleLongPress = (id) => {
+        // 진동 피드백
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        setFruits(prev => prev.map(f => 
+          f.id === id ? { ...f, count: Math.max(f.count - 1, 0) } : f
+        ));
+      };
+
+      const longPressTimer = React.useRef(null);
+      const touchUsed = React.useRef(false);
+
+      const handleTouchStart = (id) => {
+        touchUsed.current = true;
+        longPressTimer.current = setTimeout(() => {
+          handleLongPress(id);
+          longPressTimer.current = 'fired';
+        }, 500);
+      };
+
+      const handleTouchEnd = (id, e) => {
+        if (e) e.preventDefault(); // mouse 이벤트 방지
+        if (longPressTimer.current && longPressTimer.current !== 'fired') {
+          clearTimeout(longPressTimer.current);
+          handleTap(id);
+        }
+        longPressTimer.current = null;
+      };
+
+      const handleMouseDown = (id) => {
+        if (touchUsed.current) { touchUsed.current = false; return; }
+        longPressTimer.current = setTimeout(() => {
+          handleLongPress(id);
+          longPressTimer.current = 'fired';
+        }, 500);
+      };
+
+      const handleMouseUp = (id) => {
+        if (touchUsed.current) { touchUsed.current = false; return; }
+        if (longPressTimer.current && longPressTimer.current !== 'fired') {
+          clearTimeout(longPressTimer.current);
+          handleTap(id);
+        }
+        longPressTimer.current = null;
+      };
+
+      const clearList = async () => {
+        setFruits([]);
+        try {
+          await storage.delete(STORAGE_KEYS.CHECKLIST);
+        } catch (e) {
+          console.log('Failed to clear storage');
+        }
+      };
+
+      const doneCount = fruits.filter(f => f.count >= f.qty).length;
+
+      if (!storageReady) {
+        return React.createElement('div', { style: styles.container },
+          React.createElement('p', { style: styles.loadingText }, '로딩 중...')
+        );
+      }
+
+      return React.createElement('div', { style: styles.container },
+        // Header
+        React.createElement('header', { style: styles.header },
+          React.createElement('h1', { style: styles.title }, '🍎 오롯 입고'),
+          React.createElement('button', { 
+            onClick: () => { setTempApiKey(apiKey); setShowSettings(true); },
+            style: styles.settingsBtn 
+          }, '⚙️')
+        ),
+
+        // Status
+        React.createElement('div', { style: styles.statusBar },
+          apiKey 
+            ? React.createElement('span', { style: styles.statusOk }, '✓ API 연결됨')
+            : React.createElement('span', { style: styles.statusNo }, '⚠ API 키 필요')
+        ),
+
+        // Settings Modal
+        showSettings && React.createElement('div', { style: styles.modal },
+          React.createElement('div', { style: styles.modalContent },
+            React.createElement('h2', { style: styles.modalTitle }, 'API 키 설정'),
+            React.createElement('input', {
+              type: 'password',
+              placeholder: 'Anthropic API Key',
+              value: tempApiKey,
+              onChange: (e) => setTempApiKey(e.target.value),
+              style: styles.input
+            }),
+            React.createElement('div', { style: styles.modalButtons },
+              React.createElement('button', { onClick: () => setShowSettings(false), style: styles.cancelBtn }, '취소'),
+              React.createElement('button', { onClick: saveApiKey, style: styles.saveBtn }, '저장')
+            )
+          )
+        ),
+
+        // Upload
+        React.createElement('div', { style: styles.uploadArea },
+          React.createElement('label', { style: { ...styles.uploadLabel, opacity: loading ? 0.7 : 1 } },
+            React.createElement('input', {
+              type: 'file',
+              accept: 'image/*',
+              multiple: true,
+              onChange: handleImageUpload,
+              style: { display: 'none' },
+              disabled: loading
+            }),
+            React.createElement('span', { style: styles.uploadText }, loading ? '🔄 분석 중...' : '📷 사진 업로드')
+          )
+        ),
+
+        // Error
+        error && React.createElement('p', { style: styles.error }, error),
+
+        // Progress
+        fruits.length > 0 && React.createElement('div', { style: styles.progress },
+          React.createElement('span', { style: styles.progressText }, `완료: ${doneCount} / ${fruits.length}`),
+          React.createElement('button', { onClick: clearList, style: styles.clearBtn }, '초기화')
+        ),
+
+        // List
+        React.createElement('div', { style: styles.list },
+          fruits.map((fruit, idx) => {
+            const isDone = fruit.count >= fruit.qty;
+            return React.createElement(React.Fragment, { key: fruit.id },
+              // Image separator
+              idx > 0 && fruit.imageIdx !== fruits[idx - 1].imageIdx && 
+                React.createElement('div', { style: styles.separator }),
+              // Fruit button
+              React.createElement('button', {
+                onTouchStart: () => handleTouchStart(fruit.id),
+                onTouchEnd: (e) => handleTouchEnd(fruit.id, e),
+                onMouseDown: () => handleMouseDown(fruit.id),
+                onMouseUp: () => handleMouseUp(fruit.id),
+                onMouseLeave: () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } },
+                style: { ...styles.fruitBtn, ...(isDone ? styles.fruitBtnDone : {}) }
+              },
+                React.createElement('div', { style: styles.fruitInfo },
+                  React.createElement('span', { style: { ...styles.fruitShort, ...(isDone ? styles.textDone : {}) } }, fruit.short),
+                  React.createElement('span', { style: { ...styles.fruitName, ...(isDone ? styles.textDone : {}) } }, fruit.name)
+                ),
+                React.createElement('span', { style: { ...styles.fruitQty, ...(isDone ? styles.qtyDone : {}) } }, 
+                  fruit.count + ' / ' + fruit.qty
+                ),
+                isDone && React.createElement('span', { style: styles.checkmark }, '✓')
+              )
+            );
+          })
+        ),
+
+        // Empty
+        fruits.length === 0 && !loading && React.createElement('p', { style: styles.empty }, 
+          '사진을 업로드하면', React.createElement('br'), '과일 리스트가 여기에 표시됩니다'
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(FruitsChecker));
+  </script>
+</body>
+</html>

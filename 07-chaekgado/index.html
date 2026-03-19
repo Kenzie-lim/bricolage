@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나의 책장 - 책가도 생성</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      min-height: 100vh;
+      background: #f5f5f4;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    
+    h1 {
+      font-family: Georgia, 'Noto Serif KR', serif;
+      font-size: 1.5rem;
+      color: #292524;
+      font-weight: normal;
+    }
+    
+    .form-container {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    label {
+      font-size: 0.875rem;
+      color: #57534e;
+      margin-bottom: 4px;
+      display: block;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d6d3d1;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    input:focus, select:focus {
+      border-color: #92400e;
+    }
+    
+    /* 이미지 미리보기 영역 */
+    .preview-container {
+      width: 320px;
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f5f0e6 0%, #e8e0d0 50%, #f2ebe0 100%);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .placeholder-text {
+      color: #a8a29e;
+      font-size: 0.875rem;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    
+    /* 로딩 애니메이션 */
+    .loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .loading.active {
+      display: flex;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e8e0d0;
+      border-top-color: #92400e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: #57534e;
+      font-size: 0.875rem;
+    }
+    
+    /* 버튼 */
+    button {
+      padding: 12px 24px;
+      background: #92400e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #78350f;
+    }
+    
+    button:disabled {
+      background: #a8a29e;
+      cursor: not-allowed;
+    }
+    
+    .info-text {
+      font-size: 0.75rem;
+      color: #78716c;
+      text-align: center;
+      max-width: 320px;
+    }
+    
+    .download-btn {
+      display: none;
+      margin-top: -8px;
+    }
+    
+    .download-btn.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>나의 책장 - 책가도 생성</h1>
+  
+  <div class="form-container">
+    <div>
+      <label for="bookTitle">책 제목</label>
+      <input type="text" id="bookTitle" placeholder="도드라지게 표현할 책 제목">
+    </div>
+    
+    <div>
+      <label for="accentColor">강조 색상</label>
+      <select id="accentColor">
+        <option value="red">빨강</option>
+        <option value="blue">파랑</option>
+        <option value="gold">금색</option>
+        <option value="green">초록</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="preview-container" id="previewContainer">
+    <p class="placeholder-text" id="placeholder">책 제목을 입력하고<br>생성 버튼을 누르세요</p>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p class="loading-text">책가도 생성 중...</p>
+    </div>
+    
+    <img class="preview-image" id="previewImage" src="" alt="생성된 책가도">
+  </div>
+
+  <button id="generateBtn">책가도 생성하기</button>
+  
+  <button class="download-btn" id="downloadBtn">이미지 다운로드</button>
+  
+  <p class="info-text">AI가 전통 책가도 스타일로 나만의 서재를 생성합니다. 인스타그램에 업로드하면 무한 책장이 완성됩니다.</p>
+  
+  <script>
+    const bookInput = document.getElementById('bookTitle');
+    const colorSelect = document.getElementById('accentColor');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const placeholder = document.getElementById('placeholder');
+    const loading = document.getElementById('loading');
+    const previewImage = document.getElementById('previewImage');
+    
+    // 샘플 이미지 URL들 (Azure Blob Storage에서 가져오기)
+    // 실제로는 생성된 책가도 이미지 URL로 교체
+    const sampleImages = [
+      'https://i.imgur.com/08qbE6P.png',
+      'https://i.imgur.com/d6JthGY.png',
+      'https://i.imgur.com/iZt6njn.png'
+    ];
+    
+    let currentImageUrl = '';
+    
+    generateBtn.addEventListener('click', () => {
+      const bookTitle = bookInput.value.trim();
+      
+      if (!bookTitle) {
+        alert('책 제목을 입력해주세요.');
+        return;
+      }
+      
+      // 로딩 시작
+      placeholder.style.display = 'none';
+      previewImage.style.display = 'none';
+      loading.classList.add('active');
+      generateBtn.disabled = true;
+      downloadBtn.classList.remove('active');
+      
+      // 3초 후 이미지 표시 (실제로는 API 호출)
+      setTimeout(() => {
+        loading.classList.remove('active');
+        
+        // 랜덤 샘플 이미지 선택
+        currentImageUrl = sampleImages[Math.floor(Math.random() * sampleImages.length)];
+        previewImage.src = currentImageUrl;
+        previewImage.style.display = 'block';
+        
+        generateBtn.disabled = false;
+        downloadBtn.classList.add('active');
+      }, 3000);
+    });
+    
+    downloadBtn.addEventListener('click', () => {
+      // 이미지 다운로드 (실제 서비스에서는 생성된 이미지 다운로드)
+      const link = document.createElement('a');
+      link.href = currentImageUrl;
+      link.download = `책가도_${bookInput.value}.png`;
+      link.target = '_blank';
+      link.click();
+    });
+  </script>
+</body>
+</html>
