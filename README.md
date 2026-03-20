@@ -1,8 +1,6 @@
 # bricolage
 
-A collection of small, functional tools built through vibe-coding sessions. *Bricolage* — the art of making things from whatever is at hand.
-
-Each project is a self-contained single-page app (or PWA), built to solve a real personal need.
+Tools I built because I needed them. Not on a schedule — on a need. Some solve my problems, some solve other people's. The fruit store checker (#06) exists because my friend counts inventory in winter gloves. The ACT matrix generator (#02) exists because I needed something to confront my own laziness and keep good habits visible. None of these are portfolio pieces in the traditional sense — they're proof that I default to building when something is broken.
 
 ## Projects
 
