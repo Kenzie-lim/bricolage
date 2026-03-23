@@ -5,3 +5,5 @@ Inventory checker for a Korean fruit shop (*오롯*, an unmanned fruit store). U
 Requires a user-provided Anthropic API key (stored in localStorage at runtime).
 
 Stack: React 18 (CDN), Claude Vision API, PWA.
+
+<img width="563" height="1218" alt="KakaoTalk_Photo_2026-03-23-22-35-07" src="https://github.com/user-attachments/assets/02b18d12-805d-4e2b-bee7-bd09b979462e" />
